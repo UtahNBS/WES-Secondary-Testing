@@ -4,7 +4,9 @@
 source ~/.profile
 
 # List all directories for the current directory, excluding @eaDir
-DIRS=$(ls -d */ | grep -v '@eaDir')
+# sed substitution removes backslash from end of directory name
+# If I don't do this, the output filenames look weird
+DIRS=$(ls -d */ | grep -v '@eaDir' | sed 's/\/$//')
 
 # Create array to hold all commands to execute
 mergeJobs_cmds=()
