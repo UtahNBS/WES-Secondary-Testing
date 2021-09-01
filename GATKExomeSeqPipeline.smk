@@ -9,7 +9,7 @@ snakemake -ps GATKExomeSeqPipeline.smk --directory \
 TOOLS:
 - BWA MEM (version 0.7.17-r1194-dirty)
 - Picard
-- SamTOOLS
+- Samtools
 - GATK (version 4.0)
 - SnpEff (version 4.3)
 - VEP (version 96)
@@ -40,7 +40,10 @@ def get_R2(wildcards):
 rule all:
   input:
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_metrics_markdups_sorted.txt', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam.bai', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/bqsr_readgroups_markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.vcf.gz', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_HC.bam', zip, sample=SAMPLES, tool=TOOLS),
@@ -82,7 +85,7 @@ rule picard_markdups:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam"
   output:
-    bam=temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam"),
+    bam="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam",
     metrics="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_metrics_markdups_sorted.txt"
   params:
     tmp_dir="/home/UT_NBS/tmp"
@@ -96,7 +99,7 @@ rule picard_add_groups:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam"
   output:
-    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam")
+    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam"
   log:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_picard_AddOrReplaceReadGroups.log"
   shell:
@@ -109,9 +112,9 @@ rule indexBam:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam"
   output:
-    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam.bai")
+    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam.bai"
   shell:
-    "samTOOLS index {input} {output}"
+    "samtools index {input} {output}"
 
 rule BaseRecalibrator:
   input:
