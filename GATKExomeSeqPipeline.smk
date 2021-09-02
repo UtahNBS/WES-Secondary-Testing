@@ -40,6 +40,7 @@ def get_R2(wildcards):
 rule all:
   input:
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_metrics_markdups_sorted.txt', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
@@ -60,7 +61,7 @@ rule bwa:
     R1=get_R1,
     R2=get_R2
   output:
-    '{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz'
+    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz"
   log:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_bwa.log"
   threads: 6
@@ -72,7 +73,7 @@ rule picard_sort_sam:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz"
   output:
-    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam")
+    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam"
   params:
     tmp_dir="/home/UT_NBS/tmp"
   log:
@@ -154,7 +155,7 @@ rule ApplyBQSR:
 rule HaplotypeCaller:
   input:
     fa=FASTA,
-    bam="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam",
+    bam="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/bqsr_readgroups_markdups_sorted_{sample}_{tool}.bam",
     targets=ExomeTargets
   output:
     vcf="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.vcf.gz",
