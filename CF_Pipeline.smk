@@ -198,12 +198,12 @@ rule SelectVariantsSNP:
     fa=FASTA,
     vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}.vcf.gz"
   output:
-    vcf=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_raw_snps.vcf"),
+    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_raw_snps.vcf")
   log:
     "{sample}/CF_Pipeline_{sample}_{tool}/logs/{sample}_GATK_SelectVariants_SNPs.log"
   shell:
     "gatk SelectVariants -R {input.fa} -V {input.vcf} -select-type SNP "
-    "-O {output.vcf} 2> {log} || true; touch {output.vcf}"
+    "-O {output} 2> {log} || true; touch {output}"
 
 rule SNPFilter:
   input:
@@ -270,7 +270,6 @@ rule picard_sort:
     "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels.vcf"
   output:
     temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels_sorted.vcf")
-    #vcf_idx=temp("{sample}/CF_Pipeline_{file}/{file}_snps_indels_sorted.vcf.idx")
   shell:
     "java -jar $picardJAR SortVcf I={input} O={output} || true; touch {output}"
 
@@ -287,8 +286,7 @@ rule VEP:
 
 rule SnpEff:
   input:
-    vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf",
-    fa=FASTA
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf"
   output:
     temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff.vcf")
   shell:
