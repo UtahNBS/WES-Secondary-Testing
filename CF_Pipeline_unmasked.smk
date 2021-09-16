@@ -270,8 +270,7 @@ rule VEP:
 
 rule SnpEff:
   input:
-    vcf="{sample}/CF_Pipeline_unmasked_{sample}_{tool}/{sample}_vep.vcf",
-    fa=FASTA
+    "{sample}/CF_Pipeline_unmasked_{sample}_{tool}/{sample}_vep.vcf"
   output:
     temp("{sample}/CF_Pipeline_unmasked_{sample}_{tool}/{sample}_vep_snpeff.vcf")
   shell:
