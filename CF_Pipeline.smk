@@ -52,7 +52,17 @@ rule all:
   input:
     expand('{sample}/CF_Pipeline_{sample}_{tool}/logs/{sample}_metrics_markdups_sorted.txt', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/CF_Pipeline_{sample}_{tool}/bqsr_readgroups_markdups_sorted_{sample}.bam', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}.vcf.gz', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_HC.bam', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels_sorted.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz.tbi', zip, sample=SAMPLES, tool=TOOLS),
+    expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.bcftools_isec.vcf', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.cftr_panel_filter.vcf', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.cftr_panel_filter.clinvar.vcf', zip, sample=SAMPLES, tool=TOOLS)
 
@@ -89,7 +99,7 @@ rule index_bam_select_gene:
   output:
     temp("{sample}/CF_Pipeline_{sample}_{tool}/sorted_{sample}.bam.bai")
   shell:
-    "samtools index {input} {output}"
+    "samtools index {input} {output} || true; touch {output}"
 
 rule select_target_reads:
   '''
@@ -139,7 +149,7 @@ rule index_bam_for_BaseRecalibrator:
   output:
     temp("{sample}/CF_Pipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}.bam.bai")
   shell:
-    "samtools index {input} {output}"
+    "samtools index {input} {output} || true; touch {output}"
 
 rule BaseRecalibrator:
   input:
@@ -182,7 +192,8 @@ rule HaplotypeCaller:
     bam="{sample}/CF_Pipeline_{sample}_{tool}/bqsr_readgroups_markdups_sorted_{sample}.bam",
     targets=ExomeTargets
   output:
-    vcf=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}.vcf.gz"),
+    #vcf=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}.vcf.gz"),
+    vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}.vcf.gz",
     bam="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_HC.bam"
   params:
     tmp_dir="/home/UT_NBS/tmp"
@@ -261,7 +272,8 @@ rule CombineVCFs:
     snps="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_filtered_snps.vcf",
     indels="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_filtered_indels.vcf"
   output:
-    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels.vcf")
+    #temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels.vcf")
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels.vcf"
   shell:
     "perl /home/NBS/scripts/combine_vcfs.pl {input} {output} || true; touch {output}"
 
@@ -269,7 +281,8 @@ rule picard_sort:
   input:
     "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels.vcf"
   output:
-    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels_sorted.vcf")
+    #temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels_sorted.vcf")
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels_sorted.vcf"
   shell:
     "java -jar $picardJAR SortVcf I={input} O={output} || true; touch {output}"
 
@@ -278,7 +291,8 @@ rule VEP:
     vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_snps_indels_sorted.vcf",
     fa=FASTA
   output:
-    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf")
+    #temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf")
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf"
   shell:
     "vep --cache --offline --refseq --dir_cache /home/NBS/.vep --fasta "
     "{input.fa} --format vcf --fork 4 --vcf --hgvsg -e -i {input.vcf} "
@@ -288,7 +302,8 @@ rule SnpEff:
   input:
     "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep.vcf"
   output:
-    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff.vcf")
+    #temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff.vcf")
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff.vcf"
   shell:
     "java -Xmx8g -jar $snpeffJAR -v hg19 -noStats {input} > {output} "
     "|| true; touch {output}"
@@ -304,9 +319,11 @@ rule filter_overlapping_genes:
     vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff.vcf",
     bed="{sample}/{sample}.bed"
   output:
-    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered.vcf")
+    #temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered.vcf")
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered.vcf"
   shell:
-    "perl /home/NBS/scripts/filter_overlapping_genes.pl {input.vcf} {input.bed} {output}"
+    "perl /home/NBS/scripts/filter_overlapping_genes.pl {input.vcf} {input.bed} {output} "
+    "|| true; touch {output}"
 
 rule vt_normalize:
   '''
@@ -316,7 +333,8 @@ rule vt_normalize:
     vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered.vcf",
     fa=FASTA
   output:
-    temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf")
+    #temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf")
+    "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf"
   log:
     "{sample}/CF_Pipeline_{sample}_{tool}/logs/{sample}_vt_normalize.log"
   shell:
@@ -327,12 +345,15 @@ rule bgzip_tabix_vcf:
   input:
     "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf"
   output:
-    vcf_bgzip=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz"),
-    vcf_tbi=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz.tbi")
+    #vcf_bgzip=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz"),
+    #vcf_tbi=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz.tbi")
+    vcf_bgzip="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz",
+    vcf_tbi="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz.tbi"
   params:
     "-p vcf "
   shell:
-    "bgzip -c {input} > {output.vcf_bgzip} && tabix {params} {output.vcf_bgzip}"
+    "bgzip -c {input} > {output.vcf_bgzip} && tabix {params} {output.vcf_bgzip} "
+    "|| true; touch {output}"
 
 rule CF_panel_filter:
   '''
@@ -344,7 +365,8 @@ rule CF_panel_filter:
     panel=CF_panel,
     vcf="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.vcf.gz"
   output:
-    vcf_bcftools_isec_out=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.bcftools_isec.vcf"),
+    #vcf_bcftools_isec_out=temp("{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.bcftools_isec.vcf"),
+    vcf_bcftools_isec_out="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.bcftools_isec.vcf",
     vcf_cf_filter="{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.cftr_panel_filter.vcf"
   params:
     "-n=2 -w1"
@@ -352,7 +374,8 @@ rule CF_panel_filter:
     "{sample}/CF_Pipeline_{sample}_{tool}/logs/{sample}_vep_snpeff_bcftools_isec.log"
   shell:
     "bcftools isec {params} {input.vcf} {input.panel} > {output.vcf_bcftools_isec_out} 2> {log}; "
-    "perl /home/NBS/scripts/mask_polyt_polytg_cftr.pl {output.vcf_bcftools_isec_out} > {output.vcf_cf_filter}"
+    "perl /home/NBS/scripts/mask_polyt_polytg_cftr.pl {output.vcf_bcftools_isec_out} > {output.vcf_cf_filter} "
+    "|| true; touch {output}"
 
 rule clinvar_annotation:
   '''
@@ -364,4 +387,5 @@ rule clinvar_annotation:
   output:
     "{sample}/CF_Pipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm.cftr_panel_filter.clinvar.vcf"
   shell:
-    "perl /home/NBS/scripts/filter_gene_specific_variants_clinvar.pl {input} {output}"
+    "perl /home/NBS/scripts/filter_gene_specific_variants_clinvar.pl {input} {output} "
+    "|| true; touch {output}"
