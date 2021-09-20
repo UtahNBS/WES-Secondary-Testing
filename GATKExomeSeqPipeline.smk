@@ -39,17 +39,18 @@ def get_R2(wildcards):
 
 rule all:
   input:
-    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz', zip, sample=SAMPLES, tool=TOOLS),
-    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
-    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
+    #expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz', zip, sample=SAMPLES, tool=TOOLS),
+    #expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
+    #expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_metrics_markdups_sorted.txt', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/readgroups_markdups_sorted_{sample}_{tool}.bam.bai', zip, sample=SAMPLES, tool=TOOLS),
+    #expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/recal_data_{sample}_{tool}.table', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/bqsr_readgroups_markdups_sorted_{sample}_{tool}.bam', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.vcf.gz', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_HC.bam', zip, sample=SAMPLES, tool=TOOLS),
-    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep.vcf', zip, sample=SAMPLES, tool=TOOLS),
-    expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep_snpeff.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    #expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep.vcf', zip, sample=SAMPLES, tool=TOOLS),
+    #expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep_snpeff.vcf', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep_snpeff_norm.vcf', zip, sample=SAMPLES, tool=TOOLS),
     expand('{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep_snpeff_norm_clinvar.vcf', zip, sample=SAMPLES, tool=TOOLS)
   #shell:
@@ -61,7 +62,7 @@ rule bwa:
     R1=get_R1,
     R2=get_R2
   output:
-    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz"
+    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz")
   log:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_bwa.log"
   threads: 6
@@ -73,7 +74,7 @@ rule picard_sort_sam:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}.sam.gz"
   output:
-    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam"
+    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam")
   params:
     tmp_dir="/home/UT_NBS/tmp"
   log:
@@ -86,7 +87,7 @@ rule picard_markdups:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/sorted_{sample}_{tool}.bam"
   output:
-    bam="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam",
+    bam=temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}_{tool}.bam"),
     metrics="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/logs/{sample}_{tool}_metrics_markdups_sorted.txt"
   params:
     tmp_dir="/home/UT_NBS/tmp"
@@ -254,7 +255,7 @@ rule VEP:
     vcf="{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_snps_indels_sorted.vcf",
     fa=FASTA
   output:
-    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep.vcf"
+    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep.vcf")
   shell:
     "vep --cache --offline --refseq --dir_cache /home/NBS/.vep "
     "--fasta {input.fa} --format vcf --fork 4 --vcf --hgvsg -e "
@@ -264,7 +265,7 @@ rule SnpEff:
   input:
     "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep.vcf"
   output:
-    "{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep_snpeff.vcf"
+    temp("{sample}/GATKExomeSeqPipeline_{sample}_{tool}/{sample}_{tool}_vep_snpeff.vcf")
   shell:
     "java -Xmx8g -jar $snpeffJAR -v hg19 -noStats {input} > {output} "
     "|| true; touch {output}"
