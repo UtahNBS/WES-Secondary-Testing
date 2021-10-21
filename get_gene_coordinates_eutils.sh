@@ -30,8 +30,8 @@ chr_accession_map[NC_000019.9]=19
 chr_accession_map[NC_000020.10]=20
 chr_accession_map[NC_000021.8]=21
 chr_accession_map[NC_000022.10]=22
-chr_accession_map[NC_000023.10]=23
-chr_accession_map[NC_000024.9]=24
+chr_accession_map[NC_000023.10]=X
+chr_accession_map[NC_000024.9]=Y
 chr_accession_map[NC_012920.1]=MT
 
 gene_list="MASTER_NBS_gene_disorder_list.bed"
