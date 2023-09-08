@@ -44,7 +44,9 @@ rule all:
     expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/bqsr_readgroups_markdups_sorted_{sample}.bam', zip, sample=SAMPLES, tool=TOOLS, file=FILES),
     expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_HC.bam', zip, sample=SAMPLES, tool=TOOLS, file=FILES),
     expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked.vcf', zip, sample=SAMPLES, tool=TOOLS, file=FILES),
-    expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked_clinvar.vcf', zip, sample=SAMPLES, tool=TOOLS, file=FILES)
+    expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked_clinvar.vcf', zip, sample=SAMPLES, tool=TOOLS, file=FILES),
+    expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked.txt', zip, sample=SAMPLES, tool=TOOLS, file=FILES),
+    expand('{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked_clinvar.txt', zip, sample=SAMPLES, tool=TOOLS, file=FILES)
 
 rule bwa:
   input:
@@ -66,7 +68,7 @@ rule picard_sort_sam:
   output:
     temp("{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/sorted_{sample}.bam")
   params:
-    tmp_dir="/home/NBS/new_tmp"
+    tmp_dir="/home/UT_NBS/tmp"
   log:
     "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/logs/{sample}_picard_SortSam.log"
   shell:
@@ -102,7 +104,7 @@ rule picard_markdups:
     bam=temp("{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/markdups_sorted_{sample}.bam"),
     metrics="{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/logs/{sample}_metrics_markdups_sorted.txt"
   params:
-    tmp_dir="/home/NBS/new_tmp"
+    tmp_dir="/home/UT_NBS/tmp"
   log:
     "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/logs/{sample}_picard_MarkDuplicates.log"
   shell:
@@ -140,7 +142,7 @@ rule BaseRecalibrator:
   output:
     temp("{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/recal_data_{sample}.table")
   params:
-    tmp_dir="/home/NBS/new_tmp",
+    tmp_dir="/home/UT_NBS/tmp",
     padding="100"
   log:
     "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/logs/{sample}_GATK_BaseRecalibrator.log"
@@ -172,7 +174,7 @@ rule HaplotypeCaller:
     vcf=temp("{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}.vcf.gz"),
     bam="{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_HC.bam"
   params:
-    tmp_dir="/home/NBS/new_tmp"
+    tmp_dir="/home/UT_NBS/tmp"
   log:
     "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/logs/{sample}_GATK_HaplotypeCaller.log"
   shell:
@@ -273,8 +275,6 @@ rule VEP:
 
 rule SnpEff:
   '''
-  # TODO: snpeff has -interval option where you can specify a BED/TXT/VCF file with custom intervals
-  # TODO: GRCh35.75 vs hg19 for snpeff
   # -s, -stats to specify name of html summary file
   # -fi, -filterInterval to only analyze changes that intersect with intervals specified in file
   # -t to use multiple threads (implies -noStats is also used)
@@ -342,6 +342,20 @@ rule clinvar_annotation:
     "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked_clinvar.vcf"
   shell:
     "perl /home/NBS/scripts/filter_gene_specific_variants_clinvar.pl {input} {output}"
+
+rule parse_vcf_result:
+  '''
+  Use script to parse out results into tab-delimited text files that can be read by follow-up team.
+  '''
+  input:
+    vcf_no_clinvar = "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked.vcf",
+    vcf_clinvar = "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked_clinvar.vcf"
+  output:
+    txt_no_clinvar = "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked.txt",
+    txt_clinvar = "{sample}/GATKTargetedSeqPipeline_{sample}_{tool}/{sample}_vep_snpeff_filtered_norm_masked_clinvar.txt"
+  run:
+    shell("perl /home/NBS/scripts/parse_vcf_result.pl {input.vcf_no_clinvar} {output.txt_no_clinvar}")
+    shell("perl /home/NBS/scripts/parse_vcf_result.pl {input.vcf_clinvar} {output.txt_clinvar}")
 
 """
 # Files that need to be removed
